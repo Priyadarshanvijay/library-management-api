@@ -61,11 +61,11 @@ async function issueBook(req, res) {
     const issue_request = await Issue_Request.findById(issue_request_id);
     const issue_type = issue_request.issueType;   // 1-> Taking to home, 0-> Reading at the library
     if (issue_type === 1) {
-      if (moment().hour() >= 17 || moment().hour() < 10) {
+      if (moment().utcOffset("+0530").hour() >= 17 || moment().utcOffset("+0530").hour() < 10) {
         throw new Error('Custom: Book can be issued for home only between 10 AM and 5 PM');
       }
     } else {
-      if (moment().hour() >= 15 || moment().hour() < 10) {
+      if (moment().utcOffset("+0530").hour() >= 15 || moment().utcOffset("+0530").hour() < 10) {
         throw new Error('Custom: Book can be issued for reading only between 10 AM and 3 PM');
       }
     }
@@ -74,14 +74,14 @@ async function issueBook(req, res) {
       const issuer = await User.findById(issue_request.issuer);
       if (issue_type === 1) {
         //To take to home
-        const now = moment().toDate();
+        const now = moment().utcOffset("+0530").toDate();
         const days_left_in_membership = moment(issuer.validTill).diff(now, 'days');
         if (days_left_in_membership <= 5) {
           throw new Error('Custom: Less than 5 days remaining in membership');
         }
       } else {
         //read here till 5 pm
-        const time_till_5pm = 17 - moment().hour();
+        const time_till_5pm = 17 - moment().utcOffset("+0530").hour();
         if (issuer.readingHoursRemaining < time_till_5pm) {
           throw new Error('Custom: Not Enough reading hours remaining in membership');
         }
@@ -90,8 +90,8 @@ async function issueBook(req, res) {
         throw new Error('Custom: No more copies left to issue');
       }
       book_to_issue.issued += 1;
-      issue_request.issueDate = moment().toDate();
-      issue_request.returnDate = (issue_type === 1) ? moment().add(7, 'days').toDate() : moment().add((17 - moment().hour()), 'hours');
+      issue_request.issueDate = moment().utcOffset("+0530").toDate();
+      issue_request.returnDate = (issue_type === 1) ? moment().utcOffset("+0530").add(7, 'days').toDate() : moment().utcOffset("+0530").add((17 - moment().utcOffset("+0530").hour()), 'hours');
       issue_request.status = 1;    //Approved
       await book_to_issue.save();
       await issue_request.save();
@@ -118,11 +118,11 @@ async function issueReq(req, res) {
     const user_id = req.user._id;
     const issue_type = req.body.home === true ? 1 : 0;   // 1-> Taking to home, 0-> Reading at the library
     if (issue_type === 1) {
-      if (moment().hour() >= 17 || moment().hour() < 10) {
+      if (moment().utcOffset("+0530").hour() >= 17 || moment().utcOffset("+0530").hour() < 10) {
         throw new Error('Custom: Book can be issued for home only between 10 AM and 5 PM');
       }
     } else {
-      if (moment().hour() >= 15 || moment().hour() < 10) {
+      if (moment().utcOffset("+0530").hour() >= 15 || moment().utcOffset("+0530").hour() < 10) {
         throw new Error('Custom: Book can be issued for reading only between 10 AM and 3 PM');
       }
     }
@@ -130,7 +130,7 @@ async function issueReq(req, res) {
     const book_to_issue = await Book.findById(book_id);
     if (issue_type === 1) {
       //To take to home
-      const now = moment().toDate();
+      const now = moment().utcOffset("+0530").toDate();
       const days_left_in_membership = moment(issuer.validTill).diff(now, 'days');
       if (days_left_in_membership <= 5) {
         throw new Error('Custom: Less than 5 days remaining in membership');
@@ -140,7 +140,7 @@ async function issueReq(req, res) {
       }
     } else {
       //read here till 5 pm
-      const time_till_5pm = 17 - moment().hour();
+      const time_till_5pm = 17 - moment().utcOffset("+0530").hour();
       if (issuer.readingHoursRemaining < time_till_5pm) {
         throw new Error('Custom: Not Enough reading hours remaining in membership');
       }
@@ -152,7 +152,7 @@ async function issueReq(req, res) {
       throw new Error('Custom: No more copies left to issue');
     }
     const issue_request = new Issue_Request({
-      date: moment().toDate(),
+      date: moment().utcOffset("+0530").toDate(),
       issuer: user_id,
       book: book_id,
       status: 0,
@@ -174,7 +174,7 @@ async function issueReq(req, res) {
 async function returnReq(req, res) {
   const issue_request_id = req.params.id;
   try {
-    if (moment().hour() >= 17 || moment().hour() < 10) {
+    if (moment().utcOffset("+0530").hour() >= 17 || moment().utcOffset("+0530").hour() < 10) {
       throw new Error('Custom: Book can be returned only between 10 AM and 5 PM');
     }
     const issue_request = await Issue_Request.findOne({ _id: issue_request_id, issuer: req.user._id, status: 2 });
@@ -195,13 +195,13 @@ async function returnReq(req, res) {
 async function returnBook(req, res) {
   const issue_request_id = req.params.id;
   try {
-    if (moment().hour() >= 17 || moment().hour() < 10) {
+    if (moment().utcOffset("+0530").hour() >= 17 || moment().utcOffset("+0530").hour() < 10) {
       throw new Error('Custom: Book can be returned only between 10 AM and 5 PM');
     }
     const issue_request = await Issue_Request.findById(issue_request_id);
     const issue_type = issue_request.issueType;
     if (issue_type === 0) {
-      const reading_time_in_hrs = moment(issue_request.issueDate).hour() - moment().hour();
+      const reading_time_in_hrs = moment(issue_request.issueDate).hour() - moment().utcOffset("+0530").hour();
       const user = await User.findById(issue_request.issuer);
       user.readingHoursRemaining -= reading_time_in_hrs;
       await user.save();
@@ -209,7 +209,7 @@ async function returnBook(req, res) {
     const book_to_issue = await Book.findById(issue_request.book);
     book_to_issue.issued -= 1;
     issue_request.status = 4;    //Returned
-    issue_request.returnedOn = moment().toDate();
+    issue_request.returnedOn = moment().utcOffset("+0530").toDate();
     await book_to_issue.save();
     await issue_request.save();
     res.status(200).json(issue_request);

@@ -26,8 +26,8 @@ async function registerUser(req, res) {
   const noOfDays = req.body.noOfDays;
   const readingHoursAlloted = req.body.readingHours;
   try {
-    user.validFrom = moment().toDate();
-    user.validTill = moment().add(noOfDays, 'days').toDate();
+    user.validFrom = moment().utcOffset("+0530").toDate();
+    user.validTill = moment().utcOffset("+0530").add(noOfDays, 'days').toDate();
     user.readingHoursRemaining = readingHoursAlloted;
     await user.save();
     const token = await user.generateAuthToken();
