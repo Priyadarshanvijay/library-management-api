@@ -177,12 +177,13 @@ async function returnReq(req, res) {
     if (moment().utcOffset("+0530").hour() >= 17 || moment().utcOffset("+0530").hour() < 10) {
       throw new Error('Custom: Book can be returned only between 10 AM and 5 PM');
     }
-    const issue_request = await Issue_Request.findOne({ _id: issue_request_id, issuer: req.user._id, status: 2 });
+    const issue_request = await Issue_Request.findOne({ _id: issue_request_id, issuer: req.user._id, status: 1 });
     issue_request.status = 3;    //Return Requested
     await issue_request.save();
     res.status(200).json(issue_request);
   }
   catch (e) {
+    console.log(e);
     if (e.message.slice(0, 7) === "Custom:") {
       res.status(400).json({ error: e.message });
     }
